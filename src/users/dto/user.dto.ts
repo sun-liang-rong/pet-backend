@@ -100,3 +100,32 @@ export class UserQueryDto {
   @Max(100)
   pageSize?: number;
 }
+
+/**
+ * 重置密码DTO
+ */
+export class ResetPasswordDto {
+  @IsString()
+  newPassword: string;
+}
+
+/**
+ * 更新个人资料DTO（用户自己更新）
+ */
+export class UpdateProfileDto {
+  @IsOptional()
+  @IsString()
+  realName?: string;
+
+  @IsOptional()
+  @IsString()
+  avatar?: string;
+
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+}

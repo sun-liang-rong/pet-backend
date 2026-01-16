@@ -143,6 +143,12 @@ export class UsersService {
     const active = await this.userRepository.count({
       where: { status: 'active' },
     });
+    const inactive = await this.userRepository.count({
+      where: { status: 'inactive' },
+    });
+    const locked = await this.userRepository.count({
+      where: { status: 'locked' },
+    });
     const admin = await this.userRepository.count({
       where: { role: 'admin' },
     });
@@ -156,9 +162,67 @@ export class UsersService {
     return {
       total,
       active,
+      inactive,
+      locked,
       admin,
       staff,
       volunteer,
     };
+  }
+
+  /**
+   * 冻结用户
+   * POST /users/:id/freeze
+   */
+  async freeze(id: number): Promise<Partial<User>> {
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) {
+      throw new NotFoundException('用户不存在');
+    }
+
+    await this.userRepository.update(id, { status: 'locked' });
+    const updatedUser = await this.userRepository.findOneOrFail({ where: { id } });
+    const { password, ...result } = updatedUser;
+    return result;
+  }
+
+  /**
+   * 解冻用户
+   * POST /users/:id/unfreeze
+   */
+  async unfreeze(id: number): Promise<Partial<User>> {
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) {
+      throw new NotFoundException('用户不存在');
+    }
+
+    await this.userRepository.update(id, { status: 'active' });
+    const updatedUser = await this.userRepository.findOneOrFail({ where: { id } });
+    const { password, ...result } = updatedUser;
+    return result;
+  }
+
+  /**
+   * 重置用户密码
+   * POST /users/:id/reset-password
+   */
+  async resetPassword(id: number, newPassword: string): Promise<{ message: string }> {
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) {
+      throw new NotFoundException('用户不存在');
+    }
+
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+    await this.userRepository.update(id, { password: hashedPassword });
+
+    return { message: '密码重置成功' };
+  }
+
+  /**
+   * 根据ID查找用户（不隐藏密码，供内部使用）
+   */
+  async findById(id: number): Promise<User | null> {
+    return this.userRepository.findOne({ where: { id } });
   }
 }
